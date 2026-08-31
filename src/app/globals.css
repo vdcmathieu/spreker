@@ -1,26 +1,213 @@
 @import "tailwindcss";
 
+/* ---------------------------------------------------------------------------
+   Spreker — tokens.
+
+   The reference is a street at 1am: sodium lamps against a violet sky. Amber is
+   the accent and every primary action; violet is the atmosphere; red appears
+   only when a rig would overdrive a room. Colour carries sound pressure, so it
+   is never applied decoratively. See DESIGN.md.
+   --------------------------------------------------------------------------- */
+
+@theme {
+  --color-ink: #07060b;
+  --color-stage: #100c1b;
+  --color-panel: #171130;
+  --color-uv: #6d2bf5;
+  --color-uv-dim: #3b1a86;
+  --color-sodium: #ff9e2c;
+  --color-sodium-dim: #a35c10;
+  --color-clip: #ff3b30;
+  --color-bone: #ede9f2;
+  --color-mute: #8b83a3;
+  --color-hair: #241b3f;
+
+  --font-display: var(--font-archivo), "Helvetica Neue", Arial, sans-serif;
+  --font-sans: var(--font-archivo), "Helvetica Neue", Arial, sans-serif;
+  --font-mono: var(--font-plex-mono), ui-monospace, "SF Mono", monospace;
+
+  --ease-out-cabinet: cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+/* The rail's width, referenced by every section's left padding. */
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --rail: 4.5rem;
+  color-scheme: dark;
 }
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
-
-@media (prefers-color-scheme: dark) {
+@media (min-width: 1024px) {
   :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+    --rail: 6.5rem;
+  }
+}
+
+html {
+  scroll-behavior: smooth;
+  background: var(--color-ink);
+  /* The hero's wash sits outside the fold on purpose; clip rather than scroll. */
+  overflow-x: clip;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
   }
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  background: var(--color-ink);
+  color: var(--color-bone);
+  font-family: var(--font-sans);
+  font-synthesis-weight: none;
+  -webkit-font-smoothing: antialiased;
+  overflow-x: clip;
+}
+
+::selection {
+  background: var(--color-sodium);
+  color: var(--color-ink);
+}
+
+/* One focus treatment everywhere, and it is loud on purpose. */
+:where(a, button, input, select, [tabindex]):focus-visible {
+  outline: 2px solid var(--color-sodium);
+  outline-offset: 3px;
+  border-radius: 2px;
+}
+
+/* ---------------------------------------------------------------------------
+   The display face. Archivo's `wdth` axis is the signature: a cabinet is a
+   wide, flat, front-facing object, so the headline is set ultra-expanded, and
+   at run time the bass drives that same axis. Cone excursion, in type.
+   --------------------------------------------------------------------------- */
+
+.display {
+  font-family: var(--font-display);
+  font-weight: 800;
+  font-variation-settings: "wdth" var(--wdth, 118);
+  text-transform: uppercase;
+  line-height: 0.84;
+  letter-spacing: -0.015em;
+  text-wrap: balance;
+}
+
+/* Panel labels: silkscreen on the back of a powered speaker. */
+.label {
+  font-family: var(--font-mono);
+  font-size: 0.6875rem;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: var(--color-mute);
+}
+
+.hair {
+  border-color: var(--color-hair);
+}
+
+/* A single reusable panel. Flat, hairline, never a gradient. */
+.panel {
+  background: var(--color-stage);
+  border: 1px solid var(--color-hair);
+}
+
+/* The sodium button. The only filled control on the page. */
+.btn-sodium {
+  background: var(--color-sodium);
+  color: var(--color-ink);
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  padding: 0.9rem 1.6rem;
+  transition: transform 0.2s var(--ease-out-cabinet), box-shadow 0.3s ease;
+  box-shadow: 0 0 0 rgb(255 158 44 / 0);
+}
+
+.btn-sodium:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 0.75rem 2.5rem rgb(255 158 44 / 0.28);
+}
+
+.btn-sodium:active {
+  transform: translateY(0);
+}
+
+.btn-ghost {
+  border: 1px solid var(--color-hair);
+  color: var(--color-bone);
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  padding: 0.9rem 1.6rem;
+  transition: border-color 0.2s ease, color 0.2s ease;
+}
+
+.btn-ghost:hover {
+  border-color: var(--color-sodium);
+  color: var(--color-sodium);
+}
+
+/* Scroll reveal. One device, used once per section, never stacked. */
+.reveal {
+  opacity: 0;
+  transform: translateY(1.25rem);
+  transition: opacity 0.8s var(--ease-out-cabinet), transform 0.8s var(--ease-out-cabinet);
+}
+
+.reveal.in {
+  opacity: 1;
+  transform: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .reveal {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+/* Native range inputs, rebuilt as fader travel. */
+input[type="range"] {
+  -webkit-appearance: none;
+  appearance: none;
+  background: transparent;
+  width: 100%;
+  height: 2.25rem;
+  cursor: ew-resize;
+}
+
+input[type="range"]::-webkit-slider-runnable-track {
+  height: 2px;
+  background: var(--color-hair);
+}
+
+input[type="range"]::-moz-range-track {
+  height: 2px;
+  background: var(--color-hair);
+}
+
+input[type="range"]::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 0.75rem;
+  height: 1.75rem;
+  margin-top: -0.875rem;
+  background: var(--color-sodium);
+  border: none;
+  border-radius: 1px;
+}
+
+input[type="range"]::-moz-range-thumb {
+  width: 0.75rem;
+  height: 1.75rem;
+  background: var(--color-sodium);
+  border: none;
+  border-radius: 1px;
 }

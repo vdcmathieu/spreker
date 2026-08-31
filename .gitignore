@@ -39,3 +39,6 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# Screenshot review output — regenerate with `pnpm shots`
+/.review

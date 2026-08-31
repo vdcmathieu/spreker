@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32">
+  <!-- A driver seen head-on: cabinet, cone, dust cap, and the peak LED. -->
+  <rect width="32" height="32" fill="#07060B"/>
+  <circle cx="16" cy="15" r="10.5" fill="none" stroke="#6D2BF5" stroke-width="1.5"/>
+  <circle cx="16" cy="15" r="7" fill="none" stroke="#FF9E2C" stroke-width="2.5"/>
+  <circle cx="16" cy="15" r="2.6" fill="#FF9E2C"/>
+  <circle cx="27" cy="27" r="1.6" fill="#FF9E2C"/>
+</svg>
