@@ -19,7 +19,7 @@ Set the space and the headcount and it shows you what actually reaches the back 
 
 Three coupled ideas carry the design - see [DESIGN.md](DESIGN.md) for the full direction:
 
-1. **One real audio analyser drives the page.** Silent on load; one button and a four-on-the-floor loop, synthesised live in WebAudio from oscillators and filtered noise, starts feeding an FFT that everything else reads.
+1. **One real audio analyser drives the page.** A four-on-the-floor loop, synthesised live in WebAudio from oscillators and filtered noise, starts by itself and feeds an FFT that everything else reads. One button in the rail stops it.
 2. **The headline breathes on the `wdth` axis.** Archivo is a variable font, and the kick drives its width. Cone excursion, rendered as type.
 3. **The room instrument.** Your space drawn as a space and lit by the rig - and light from a point source falls off at exactly the rate sound does, so the brightness on the lawn *is* the loudness. Whoever stands in enough of it is dancing; whoever does not is standing still, and you can count them. Then drag yourself to the far fence: with the sound on the music really does go quiet and dull, while the party's own noise does not.
 
@@ -43,6 +43,7 @@ Start the dev server first, then:
 ```bash
 pnpm shots        # every section at 1440 / 390 / 834, into .review/, plus an overflow report
 pnpm room         # the room in every space, rig, headcount and standing position that differs
+pnpm rigs         # each of the three cabinets, close, at 1440 and 390
 pnpm splash       # records the opening wave frame by frame, and reports the longest stall
 pnpm interact     # drives the controls and asserts the page responds
 pnpm breathe      # samples the headline's width axis per frame, sound off vs on
@@ -60,7 +61,7 @@ pnpm og           # re-captures public/og.png from the live hero
 | Rigs | `src/lib/rigs.ts` | Three rigs, named for the room they fill. |
 | The instrument | `src/components/RoomInstrument.tsx` | The section: the caption, the controls and the readouts, which carry the same information in words. |
 | The room | `src/components/RoomScene.tsx`, `roomScene.glsl.ts` | The space itself. The falloff is solved per pixel in the shader and mirrored in `lib/room.ts`, so the people and the ground they stand on agree. |
-| The cabinet | `src/components/RigModel.tsx` | Procedural three.js - no model files, no image textures, no HDR. |
+| The cabinets | `src/components/RigModel.tsx` | Three of them, built differently - a moulded wedge, a raked plywood two-way, a sub on castors. Procedural three.js: no model files, no image textures, no HDR. |
 | The rail | `src/components/Rail.tsx` | The patch panel, and the owner of the one rAF that keeps `levels` current. |
 | The opening | `src/components/Splash.tsx`, `src/lib/wave.ts` | A drop in still water while the page loads, drawn in a worker so hydration cannot freeze it. |
 | The hero's water | `src/components/WaterField.tsx` | The same surface, turned right down, with a ring leaving the cabinet on every kick. |

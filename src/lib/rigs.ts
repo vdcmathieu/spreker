@@ -14,10 +14,24 @@ export type Rig = {
   pricePerNight: number;
   heads: string; // the honest headcount, in words
   boxes: string[];
-  /** Cabinet proportions for the 3D rig, in metres. */
+  /**
+   * The top, in metres. This is the box the room instrument stands on a stand,
+   * so it is the top for every rig - never the sub.
+   */
   cabinet: { w: number; h: number; d: number };
-  /** Woofers on the baffle: [y offset in cabinet heights, radius in metres]. */
-  woofers: [number, number][];
+  /**
+   * The one box the rig stage stands up close, and how it is built. Each rig
+   * gets its own cabinet: a moulded wedge, a plywood trapezoid, a sub on
+   * castors. Three boxes that differ only in size are one box three times.
+   */
+  stage: {
+    form: 'wedge' | 'trap' | 'sub';
+    /** What it is, in words, for the caption under the canvas. */
+    label: string;
+    size: { w: number; h: number; d: number };
+    /** Cone radius, in metres. */
+    driver: number;
+  };
   subs: number;
 };
 
@@ -33,7 +47,12 @@ export const RIGS: Rig[] = [
     heads: 'Up to 60 people',
     boxes: ['2 × 8" powered tops', '2 × tripod stands', 'Mixer, cables, one spare'],
     cabinet: { w: 0.28, h: 0.46, d: 0.28 },
-    woofers: [[-0.12, 0.09]],
+    stage: {
+      form: 'wedge',
+      label: 'the 8" top',
+      size: { w: 0.3, h: 0.48, d: 0.31 },
+      driver: 0.105,
+    },
     subs: 0,
   },
   {
@@ -47,7 +66,12 @@ export const RIGS: Rig[] = [
     heads: 'Up to 150 people',
     boxes: ['2 × 12" powered tops', '1 × 18" subwoofer', '2 × stands, mixer, full loom'],
     cabinet: { w: 0.36, h: 0.6, d: 0.35 },
-    woofers: [[-0.1, 0.13]],
+    stage: {
+      form: 'trap',
+      label: 'the 12" top',
+      size: { w: 0.38, h: 0.62, d: 0.38 },
+      driver: 0.135,
+    },
     subs: 1,
   },
   {
@@ -61,7 +85,12 @@ export const RIGS: Rig[] = [
     heads: 'Up to 400 people',
     boxes: ['2 × 15" powered tops', '2 × 18" subwoofers', 'Desk, engineer, distro, spares'],
     cabinet: { w: 0.44, h: 0.72, d: 0.42 },
-    woofers: [[-0.09, 0.16]],
+    stage: {
+      form: 'sub',
+      label: 'the 18" sub',
+      size: { w: 0.78, h: 0.54, d: 0.62 },
+      driver: 0.185,
+    },
     subs: 2,
   },
 ];

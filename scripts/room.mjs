@@ -104,10 +104,10 @@ log.push(`drag: ${before.replace(/\s+/g, ' ')}\n   ->  ${after.replace(/\s+/g, '
 if (before === after) log.push('pageerror: dragging did not move the listener');
 await panel.screenshot({ path: `${OUT}/dragged.png` });
 
-// Sound on, at the back: the seat gain and the crowd bed should both be set.
-await page.locator('#source').scrollIntoViewIfNeeded();
-await page.getByRole('button', { name: /turn the sound on/i }).click();
-await page.waitForTimeout(1200);
+// Sound on — it started itself, autoplay being unblocked above — at the back:
+// the seat gain and the crowd bed should both be set.
+const playing = await page.locator('nav button[aria-pressed]').first().getAttribute('aria-pressed');
+if (playing !== 'true') log.push('pageerror: the sound did not start on its own');
 await page.locator('#room').scrollIntoViewIfNeeded();
 await page.waitForTimeout(1600);
 await panel.screenshot({ path: `${OUT}/sound-on.png` });

@@ -1,7 +1,7 @@
 /**
  * Interaction pass: drive the controls the way a visitor would and assert the
- * page actually responds. Audio autoplay is unblocked so the analyser can be
- * checked without a real click gesture.
+ * page actually responds. Audio autoplay is unblocked, which is the case the
+ * page is built for: it should already be playing before anything is clicked.
  */
 import { chromium } from 'playwright';
 
@@ -17,15 +17,16 @@ p.on('console', (m) => m.type() === 'error' && errs.push(m.text()));
 await p.goto('http://localhost:3000', { waitUntil: 'load' });
 await p.waitForTimeout(1500);
 
-// 1. Sound on.
-await p.getByRole('button', { name: /turn the sound on/i }).click();
+// 1. Sound, which nobody asked for.
 await p.waitForTimeout(2000);
+const auto = await p.locator('nav button[aria-pressed]').first().getAttribute('aria-pressed');
+if (auto !== 'true') errs.push('pageerror: the sound did not start on its own');
 const meter = await p.evaluate(() => {
   const el = document.querySelector('nav [style*="scaleY"]');
   return el ? getComputedStyle(el).transform : 'none';
 });
-console.log('meter transform after sound on:', meter);
-console.log('aria-pressed:', await p.locator('nav button[aria-pressed]').first().getAttribute('aria-pressed'));
+console.log('meter transform, sound on by itself:', meter);
+console.log('aria-pressed:', auto);
 await p.locator('#source').screenshot({ path: '.review/int-hero-sound-on.png' });
 
 // 2. Room controls.

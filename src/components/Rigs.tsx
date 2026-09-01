@@ -43,16 +43,12 @@ export function Rigs() {
         </header>
 
         <div className="grid gap-px border border-hair bg-hair lg:grid-cols-[1fr_1fr]">
-          <div className="relative min-h-[22rem] bg-stage lg:min-h-[36rem]">
+          <div data-rig-stage className="relative min-h-[22rem] bg-stage lg:min-h-[36rem]">
             {rigReady && (
-              <RigStage
-                rig={rig}
-                className="rig-arrive absolute inset-0"
-                cameraZ={rig.subs > 0 ? 3.6 : 3.1}
-              />
+              <RigStage rig={rig} className="rig-arrive absolute inset-0" cameraZ={3.3} />
             )}
-            <p className="absolute bottom-3 left-4 font-mono text-[0.6875rem] text-mute/80">
-              {rig.name} · the cone is moving with the signal
+            <p className="absolute bottom-3 left-4 right-4 font-mono text-[0.6875rem] text-mute/80">
+              {rig.name} · {rig.stage.label} · the cone is moving with the signal
             </p>
           </div>
 

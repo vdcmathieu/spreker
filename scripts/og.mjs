@@ -10,7 +10,12 @@ const b = await chromium.launch({
 const ctx = await b.newContext({ viewport: { width: 1200, height: 630 }, deviceScaleFactor: 2 });
 const p = await ctx.newPage();
 await p.goto(process.argv[2] ?? 'http://localhost:3000', { waitUntil: 'load' });
-await p.getByRole('button', { name: /turn the sound on/i }).click().catch(() => {});
+// The page starts itself; press the button only if the browser refused it, and
+// never when it is already playing — that would mute the rig for the shot.
+await p
+  .getByRole('button', { name: /^turn it on$/i })
+  .click({ timeout: 4000 })
+  .catch(() => {});
 await p.waitForTimeout(3000);
 // The rail and the scroll cue are chrome; the card is the hero, squared off to
 // the social aspect so nothing important falls outside the crop.

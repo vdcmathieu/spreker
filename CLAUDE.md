@@ -19,6 +19,7 @@ There are no unit tests. The checks that matter are visual and behavioural, and 
 ```bash
 pnpm shots        # every section at 1440 / 390 / 834 into .review/, plus a horizontal-overflow report
 pnpm room         # the landscape in every space, rig and headcount that says something different
+pnpm rigs         # each of the three cabinets, close, at 1440 and 390
 pnpm splash       # records the opening wave frame by frame and reports the longest stall
 pnpm interact     # clicks through the room controls, rig tabs and booking form; asserts responses; reports console errors
 pnpm breathe      # samples the headline's --wdth per frame with sound off and on
@@ -27,9 +28,13 @@ pnpm og           # re-captures public/og.png from the live hero
 
 **Look at the screenshots.** Four of the worst bugs in this codebase's history were invisible to the type checker and obvious in a PNG: a 3D rig that read as four floating boxes, a pressure field that came out as one brown smear, an analyser clock that was never started so nothing on the page moved, and a floor wound the wrong way round so the room had no ground in it at all.
 
+**And check that the screenshot is of the change you just made.** The dev server compiles an edited chunk while it is serving the request that triggered the recompile, so the first page load after an edit gets the *previous* build. A review pass run straight after a change photographs the state before it. `pnpm rigs` opens a throwaway page first for exactly this reason, and even then the safe move when a change appears to have had no effect is to run the pass a second time before believing it. Half a dozen material fixes were chased and discarded here on the strength of renders that were one edit behind.
+
 **And be suspicious of a picture that needs explaining.** The room section has been rebuilt twice, both times because it was accurate and unreadable - a gradient nobody can measure by eye, then a landscape that asked people to read height as decibels. If a new device needs a key before it means anything, it is the device that is wrong, not the reader.
 
 ## Architecture
+
+**Three rigs, three cabinets** (`src/components/RigModel.tsx`). `Bounds fit` normalises the size of whatever it is given, so three boxes that differ only in their dimensions arrive on screen identical - which is what the second version of this section did. Each rig now has its own build in `rig.stage`: a moulded wedge with a carry handle over it, a raked plywood two-way with a rectangular horn through a cut in its grille, and a wide sub on castors with a pole standing out of the top. The sub is the one place the stage shows something other than the top, because the Schuur is a stack and one box cannot say that any other way.
 
 **One mutable `levels` object, read in rAF, never in React state** (`src/lib/audio.ts`). Sixty state updates a second would re-render the page; instead `levels` is a plain object that components read inside their own `requestAnimationFrame` or `useFrame`. Only the on/off flag is React state.
 
@@ -54,7 +59,11 @@ pnpm og           # re-captures public/og.png from the live hero
 - **The `wdth` axis is the signature.** `BreathingType` snaps open on the kick and eases shut; easing the attack as well turns the breath into a wobble that never reaches the top of the axis.
 - **A breathing headline is set to the measure.** `BreathingType fit` sizes the type from the widest the axis will ever reach, never above the CSS clamp, and forbids wrapping. Without it the hero re-wrapped on every kick and the whole page jumped by a line each time.
 - Every canvas is `aria-hidden` and **every control has a text equivalent** - the room's readout says in words exactly what the light shows, and where you are standing has three named spots in the panel as well as the drag. Keep both true.
-- `prefers-reduced-motion` kills the ripples, the breathing and the 3D drift, and flattens the simulated envelope to nothing. Audio is opt-in and starts silent.
+- `prefers-reduced-motion` kills the ripples, the breathing and the 3D drift, and flattens the simulated envelope to nothing.
+  It also suppresses the autostart: playing turns the analyser on, and the analyser is the motion.
+- **The sound starts itself.**
+  `autoStart()` asks once the splash has left, and where the browser refuses, arms the first pointer, key or touch anywhere on the page and asks again.
+  The button never claims more than is true - `turnOn()` reports whether the context is genuinely running, and one press turns it off for good.
 - Sections are stages of a signal chain (`source → room → rig → delivery → book`); those ids are also the rail's anchors. Explicit numbering appears only in the delivery steps, which are a real sequence.
 
 ## Gotchas
@@ -70,7 +79,12 @@ pnpm og           # re-captures public/og.png from the live hero
 - **The room's canvas is built in an idle slot, not on mount.** The section starts immediately under the fold, so an IntersectionObserver alone fires at the top of the page - putting a second WebGL context and four shader compiles in the same frame the splash leaves on.
 - **The uniforms that move every frame live at module scope** (`clock` in `RoomField.tsx`), for the same reason `levels` does: the React compiler's lint refuses a mutation of anything a hook returned, and a ref cannot be read during render either.
 - **`fwidth` must be called outside every branch.** It reads neighbouring pixels, which may not have taken the branch; the terrain shader takes all its derivatives in the first few lines for that reason.
+- **`resume()` can never be awaited on its own.** Chrome leaves the promise pending indefinitely on a context it has decided not to start and Safari rejects it outright, so `turnOn` races it against a short wait and then asks `ctx.state`. It is also single-flight: the arrival ask and a gesture arriving on top of it would otherwise start two schedulers and play the loop at double tempo.
+- **The autostart ignores gestures on the sound button** (`[data-sound]`). Without that, a pointerdown on it turns the sound on a moment before its own click turns it back off.
 - **Rings are emitted on `beatEdge()`, not on a level test.** The kick sends `beat` to 1, but the simulated envelope with the sound off only reaches about 0.4, so the old `beat > 0.72` meant nothing rippled at all until the sound was turned on.
+- **Metal with nothing behind it is black.** `metalness` reflects the environment, and this environment is a dark violet room with one warm panel in it. The horn flares came out as black letterboxes at metalness 0.8 and only read as horns once they were mostly diffuse; for the same reason a grille wants a low metalness and a value it can hold on its own.
+- **`Bounds` fits on mount and on resize, and a tab change is neither.** Switching rigs swaps the geometry inside a `Bounds` that has already fitted, so the 0.78 m sub was framed for the 0.38 m top before it and hung off both edges. It is keyed on `rig.id`.
+- **A shape geometry lays its UVs out in local units**, so a perforation tiled over one has its repeat set in metres per tile rather than in fractions of a panel - which is how each cabinet gets its own hole pitch off one texture. Do not give those panels `DoubleSide`: a transparent grille drawn twice is twice as bright, and the boxes come back warm.
 - **`role="status"` appears twice in `#room` now.** Where you are standing, and the verdict on the rig. Scripts that address it have to say which.
 - **`--rail` is `0` below 768px.** The rail is a transport bar along the bottom there, so reserving its width on the left only took measure away from the type.
 - **Analyser smoothing flattens transients.** `smoothingTimeConstant` is 0.3, and the band levels run through an auto-gain that tracks a decaying maximum and a rising minimum - a four-on-the-floor loop keeps the bottom octaves lit almost continuously, so the raw average barely moves.

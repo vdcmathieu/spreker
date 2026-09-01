@@ -10,6 +10,7 @@
     "shots": "node scripts/shots.mjs",
     "splash": "node scripts/splash.mjs",
     "room": "node scripts/room.mjs",
+    "rigs": "node scripts/rigshots.mjs",
     "interact": "node scripts/interact.mjs",
     "breathe": "node scripts/breathe.mjs",
     "og": "node scripts/og.mjs"

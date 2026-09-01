@@ -1,8 +1,8 @@
 'use client';
 
 import { useEffect, useRef } from 'react';
-import { levels, toggle } from '@/lib/audio';
-import { useActiveSection, useLevels, usePlaying } from '@/lib/hooks';
+import { autoStart, levels, toggle } from '@/lib/audio';
+import { useActiveSection, useLevels, usePlaying, useSplashDone } from '@/lib/hooks';
 
 /**
  * The patch panel. A mixing desk has a strip down one side carrying the things
@@ -69,6 +69,7 @@ function SoundButton({ compact = false }: { compact?: boolean }) {
       type="button"
       onClick={() => void toggle()}
       aria-pressed={playing}
+      data-sound=""
       className={`label transition-colors hover:text-sodium ${
         playing ? 'text-sodium' : 'text-mute'
       } ${compact ? '' : '[writing-mode:vertical-rl] rotate-180'}`}
@@ -83,6 +84,14 @@ export function Rail() {
   // The rail is the one component mounted for the whole page, so it owns the
   // single rAF that feeds `levels`. Without this nothing on the page breathes.
   useLevels();
+
+  // And, for the same reason, it is the one that asks for sound. The ask waits
+  // for the wave to leave: building an audio graph during hydration would put
+  // the work in exactly the second the splash exists to keep clear.
+  const splashDone = useSplashDone();
+  useEffect(() => {
+    if (splashDone) autoStart();
+  }, [splashDone]);
 
   return (
     <>

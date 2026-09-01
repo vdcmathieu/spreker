@@ -5,10 +5,16 @@
  * filtered noise, so nothing is fetched, nothing is licensed, and the FFT the
  * page animates against is genuinely the FFT of what you are hearing.
  *
- * Sound is opt-in and starts silent: the context is only created on a real user
- * gesture. With sound off, `levels` still moves — a slow simulated envelope, so
- * the page breathes rather than sitting dead — unless the visitor has asked for
- * reduced motion, in which case it stays flat.
+ * The page asks for sound as soon as it loads. Browsers do not always grant it
+ * — autoplay is only allowed once a visitor has engaged with the site — so
+ * `autoStart` tries, checks whether the context is genuinely running, and if it
+ * is not, waits for the first real gesture anywhere on the page and tries once
+ * more. Either way the button is the truth: it never says *Sound on* over
+ * silence, and one press turns it off for good.
+ *
+ * With sound off, `levels` still moves — a slow simulated envelope, so the page
+ * breathes rather than sitting dead — unless the visitor has asked for reduced
+ * motion, in which case it stays flat.
  */
 
 export type Levels = {
@@ -42,6 +48,7 @@ let rafId: number | null = null;
 let step = 0;
 let nextNoteTime = 0;
 let lastKickAt = 0;
+let starting = false;
 const listeners = new Set<(playing: boolean) => void>();
 
 function reducedMotion() {
@@ -330,8 +337,96 @@ function announce() {
   for (const fn of listeners) fn(levels.playing);
 }
 
-export async function turnOn() {
-  if (levels.playing) return;
+// --- starting without being asked ----------------------------------------
+
+/**
+ * The gestures a browser accepts as engagement, in the order they arrive. A
+ * scroll is not one of them: it does not grant user activation, so listening
+ * for it would only mean calling `resume()` into the same refusal again.
+ */
+const GESTURES = ['pointerdown', 'keydown', 'touchend'] as const;
+
+let waiting: (() => void) | null = null;
+
+function disarm() {
+  waiting?.();
+  waiting = null;
+}
+
+function arm() {
+  if (waiting) return;
+  const go = (e: Event) => {
+    // The sound button drives itself. Starting on its pointerdown would turn
+    // the sound on a moment before its own click turned it back off.
+    if (e.target instanceof Element && e.target.closest('[data-sound]')) return;
+    disarm();
+    void turnOn();
+  };
+  for (const type of GESTURES) window.addEventListener(type, go, { passive: true });
+  waiting = () => {
+    for (const type of GESTURES) window.removeEventListener(type, go);
+  };
+}
+
+/**
+ * Ask for sound on arrival.
+ *
+ * The rig is the page, so the page arrives with it running. Autoplay policy
+ * decides whether that is allowed on this visit; where it is not, the first
+ * touch, click or keypress anywhere gets it, which is close enough to the same
+ * thing without ever leaving the button lying about what is audible.
+ */
+export function autoStart() {
+  if (levels.playing || waiting) return;
+  // Except for anyone who asked for reduced motion. Playing turns the analyser
+  // on, and the analyser is what makes the type breathe and the rings go out —
+  // starting it unasked would hand back exactly the motion they turned off. The
+  // button is still there, and still theirs to press.
+  if (reducedMotion()) return;
+  void turnOn().then((started) => {
+    if (!started) arm();
+  });
+}
+
+/**
+ * Start the loop. Returns whether there is actually sound: a context created
+ * outside a gesture stays suspended, and a page that claims to be playing when
+ * it is not is worse than a page that is quiet.
+ */
+export async function turnOn(): Promise<boolean> {
+  if (levels.playing) return true;
+  // Two calls can overlap — the page asking on arrival, and a gesture arriving
+  // while that ask is still waiting on the browser. Two schedulers would play
+  // the loop at double tempo.
+  if (starting) return false;
+  starting = true;
+  try {
+    return await start();
+  } finally {
+    starting = false;
+  }
+}
+
+/**
+ * Wait for the context, but not for ever.
+ *
+ * Chrome leaves the promise from `resume()` pending indefinitely on a context
+ * it has decided not to start, and Safari rejects outright; neither can simply
+ * be awaited. Race it against a short wait and then ask the context what it
+ * actually did.
+ */
+async function resume(c: AudioContext): Promise<boolean> {
+  try {
+    await Promise.race([c.resume(), new Promise((r) => {
+        setTimeout(r, 150);
+      })]);
+  } catch {
+    // Refused, which is one of the answers.
+  }
+  return c.state === 'running';
+}
+
+async function start(): Promise<boolean> {
   if (!ctx) {
     ctx = new AudioContext();
     noise2s = noiseBuffer(ctx, 2);
@@ -360,7 +455,8 @@ export async function turnOn() {
     startBabble(ctx);
     step = 0;
   }
-  await ctx.resume();
+  if (!(await resume(ctx))) return false;
+  disarm();
   nextNoteTime = ctx.currentTime + 0.06;
   master!.gain.cancelScheduledValues(ctx.currentTime);
   master!.gain.setValueAtTime(0.0001, ctx.currentTime);
@@ -368,9 +464,12 @@ export async function turnOn() {
   schedulerId = window.setInterval(scheduler, 25);
   levels.playing = true;
   announce();
+  return true;
 }
 
 export function turnOff() {
+  // Off means off: whatever the page was still waiting for, stop waiting.
+  disarm();
   if (!ctx || !master || !levels.playing) return;
   master.gain.cancelScheduledValues(ctx.currentTime);
   master.gain.setValueAtTime(master.gain.value, ctx.currentTime);

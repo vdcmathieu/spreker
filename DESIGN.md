@@ -56,7 +56,9 @@ It gives the page a mixing-desk identity from the first pixel and collapses to a
 Three coupled ideas, all the same idea:
 
 1. **One real audio analyser drives the entire page.**
-   Silent and calm on load. One button - *Turn it on* - and a four-on-the-floor loop, synthesised live in WebAudio from oscillators and filtered noise (no audio files, nothing licensed, nothing fetched), starts feeding an FFT.
+   A four-on-the-floor loop, synthesised live in WebAudio from oscillators and filtered noise (no audio files, nothing licensed, nothing fetched), feeds an FFT.
+   It starts on its own: a rig you have to switch on is a shop, and a rig that is already running is a party.
+   Where the browser will not allow that unasked, the first touch anywhere gets it, and one button in the rail - *Sound on* - stops it at any moment.
    Waves, cone excursion, glow intensity and type all read from that one analyser.
    With sound off, everything falls back to a gentle simulated envelope, so the page is never dead.
 
@@ -112,10 +114,26 @@ Nothing in the room is there to look like something.
 The light is the level, the people are the people, the fence is the fence - and the panel beside it says the same thing in words, so the room is readable rather than merely atmospheric.
 The hero's water is ground rather than subject - one lattice, a fifth of the splash's brightness, and it is the only place on the page besides the instrument where anything ripples.
 
-Floor, not negotiable: responsive to 360px, visible keyboard focus, `prefers-reduced-motion` honoured (no ripple, no breathing, nobody dancing, a single static frame that is still fully readable), audio opt-in only, all controls reachable without the canvas - including where you are standing, which has three named spots in the panel as well as the drag.
+Floor, not negotiable: responsive to 360px, visible keyboard focus, `prefers-reduced-motion` honoured (no ripple, no breathing, nobody dancing, a single static frame that is still fully readable - and no sound unasked, since the analyser is the motion), sound that starts by itself always stoppable from a control that is on screen from the first pixel, all controls reachable without the canvas - including where you are standing, which has three named spots in the panel as well as the drag.
 
 ## Copy
 
 Plain, dry, confident. British English. Prices in euros.
 Rigs are named for the room they fill, in Dutch, since *spreker* is Dutch for speaker: **Keuken**, **Tuin**, **Schuur** - kitchen, garden, barn.
 That naming reinforces the room-first thesis every time a rig is mentioned.
+
+## The three cabinets
+
+The rig section stands one box up close and turns it slowly, and for a while that box was the same box three times at three sizes.
+It read as one box three times, because it was: the stage fits whatever it is given to the frame, so the only thing that told the three apart was normalised away before anyone saw it.
+
+Each rig is now built differently, and the differences are the ones you would notice in a van.
+The **Keuken** is a single moulded shell - the top raked back, the bottom cut to the monitor angle so it can be laid on its side, every edge soft, a carry handle moulded over the top and no steel on it anywhere, because nothing that size is expected to take a hit.
+The **Tuin** is painted plywood, raked ten degrees a side so a pair nest face to face, steel on all eight corners, handles set into the slant, and a rectangular horn showing through a cut in a full-face perforated grille - rectangular because its coverage is, ninety degrees across the garden and none of it in the neighbour's window.
+The **Schuur** is the one box on the page that is not a top: a wide sub on castors, one enormous cone under a round grille with a reflex slot open either side of it, and a pole standing out of the top waiting for the tops to go on.
+That pole is doing the work of a sentence. The Schuur is not a box, it is a stack, and it is the only one of the three that has to say so.
+
+Two rules came out of getting this wrong.
+**The drivers have to be visible** - a grille dense enough to read as steel at this distance is a solid panel with a speaker somewhere behind it, and a horn sunk behind one is a dark hole.
+So the perforation is open, its pitch is set in millimetres rather than in texels, and where a horn would disappear the grille has a hole cut in it instead.
+**And the light has to reach them.** Metalness reflects the environment and this environment is a dark violet room; the flares were black until they were made mostly diffuse.
