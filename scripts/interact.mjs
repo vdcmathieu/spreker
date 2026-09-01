@@ -14,7 +14,7 @@ const errs = [];
 p.on('pageerror', (e) => errs.push(String(e)));
 p.on('console', (m) => m.type() === 'error' && errs.push(m.text()));
 
-await p.goto('http://localhost:3000', { waitUntil: 'networkidle' });
+await p.goto('http://localhost:3000', { waitUntil: 'load' });
 await p.waitForTimeout(1500);
 
 // 1. Sound on.

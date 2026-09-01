@@ -246,6 +246,27 @@ function tick() {
   levels.beat = levels.bass;
 }
 
+/**
+ * One pulse per kick, for anything that emits a ring.
+ *
+ * A level test alone does not work for both states: the kick sends `beat`
+ * straight to 1, while the simulated envelope with the sound off only ever
+ * reaches about 0.4, so a threshold high enough to catch one kick per bar left
+ * the page silent-still and the instrument's rings never came at all. An upward
+ * crossing of a low threshold fires exactly once either way.
+ */
+export function beatEdge(threshold = 0.26, gap = 0.24) {
+  let prev = 0;
+  let last = -gap;
+  return (now: number) => {
+    const b = levels.beat;
+    const hit = b > threshold && prev <= threshold && now - last > gap;
+    prev = b;
+    if (hit) last = now;
+    return hit;
+  };
+}
+
 export function startClock() {
   if (rafId === null && typeof window !== 'undefined') tick();
 }

@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { levels } from '@/lib/audio';
+import { beatEdge, levels } from '@/lib/audio';
 import { RIGS, rigById, type Rig } from '@/lib/rigs';
 import {
   SPACES,
@@ -118,7 +118,7 @@ function Plan({ rig, space, heads }: { rig: Rig; space: Space; heads: number }) 
     if (!cvs) return;
     const ctx = cvs.getContext('2d')!;
     let raf = 0;
-    let lastBeat = 0;
+    const kicked = beatEdge();
     const t0 = performance.now();
 
     const resize = () => {
@@ -186,10 +186,7 @@ function Plan({ rig, space, heads }: { rig: Rig; space: Space; heads: number }) 
       // Rings, emitted on the beat. With sound off they still come, on the
       // simulated envelope, so the instrument reads as live.
       if (!reduced) {
-        if (levels.beat > 0.72 && now - lastBeat > 0.28) {
-          rings.current.push({ born: now });
-          lastBeat = now;
-        }
+        if (kicked(now)) rings.current.push({ born: now });
         rings.current = rings.current.filter((ring) => now - ring.born < RING_LIFE);
         for (const ring of rings.current) {
           const age = now - ring.born;

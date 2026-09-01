@@ -18,6 +18,7 @@ There are no unit tests. The checks that matter are visual and behavioural, and 
 
 ```bash
 pnpm shots        # every section at 1440 / 390 / 834 into .review/, plus a horizontal-overflow report
+pnpm splash       # records the opening wave frame by frame and reports the longest stall
 pnpm interact     # clicks through the room controls, rig tabs and booking form; asserts responses; reports console errors
 pnpm breathe      # samples the headline's --wdth per frame with sound off and on
 pnpm og           # re-captures public/og.png from the live hero
@@ -31,6 +32,10 @@ pnpm og           # re-captures public/og.png from the live hero
 
 **`Rail` owns the clock.** `useLevels()` starts the single rAF that keeps `levels` current, and the rail is the one component mounted for the whole page. If the rail ever stops being always-mounted, something else has to call `useLevels()` or the entire page goes still - silently, with no error.
 
+**The opening wave runs off the main thread** (`src/components/splash.worker.ts`, `src/lib/wave.ts`). The first second of this page is one long task - hydration, then three.js - so a wave drawn in a `requestAnimationFrame` freezes in the middle of itself. The draw lives in a module with no DOM in it, the worker owns a transferred `OffscreenCanvas`, and the main thread keeps a copy of the same loop for browsers without one. For the same reason the 3D is gated on `useSplashDone()` in both `Hero` and `Rigs`: three.js is only asked for once the wave is leaving. `pnpm splash` reports the longest gap between frames - it should be tens of milliseconds, not hundreds.
+
+**One wave, three places.** `src/lib/wave.ts` draws the surface and takes a `Look`: `FULL` for the splash, which owns the screen, and `GROUND` for the hero's water, which is the page's ground and is drawn at a fifth of the brightness. The hero's rings leave the cabinet - `WaterField` reads the rig's box every time a wave goes out - and the room instrument's rings are the same idea in plan.
+
 **Nothing is fetched at run time.** No audio files, no model files, no image textures, no HDR environment, no web-font CDN. The music is oscillators, the grille is a canvas dot pattern, the environment is drei `Lightformer`s, and `next/font` self-hosts Archivo and IBM Plex Mono. Keep it that way - it is a large part of why the page feels immediate.
 
 **The physics is real and is the point** (`src/lib/spl.ts`). Verdicts are judged on the **direct** field only; the reverberant term is displayed but never counted, because reverberant energy adds loudness without intelligibility. Levels shown are the *trimmed operating level* - the rig turned down until the far corner is exactly loud enough - not the peak on the box. If you change the model, re-run the sweep over every space × headcount combination and check the answers are still defensible; an earlier version had a pair of 8" tops filling a warehouse.
@@ -40,6 +45,7 @@ pnpm og           # re-captures public/og.png from the live hero
 - **British English** throughout, and the plain dash `-` rather than an em dash.
 - **Colour carries sound pressure.** Amber is the accent and every primary action, violet is atmosphere and low pressure, and red appears only when a rig would exceed what a space takes. Do not use any of them decoratively.
 - **The `wdth` axis is the signature.** `BreathingType` snaps open on the kick and eases shut; easing the attack as well turns the breath into a wobble that never reaches the top of the axis.
+- **A breathing headline is set to the measure.** `BreathingType fit` sizes the type from the widest the axis will ever reach, never above the CSS clamp, and forbids wrapping. Without it the hero re-wrapped on every kick and the whole page jumped by a line each time.
 - Every canvas is `aria-hidden` and **every control has a text equivalent** - the room instrument's readout says in words exactly what the plan draws. Keep that true.
 - `prefers-reduced-motion` kills the ripples, the breathing and the 3D drift, and flattens the simulated envelope to nothing. Audio is opt-in and starts silent.
 - Sections are stages of a signal chain (`source → room → rig → delivery → book`); those ids are also the rail's anchors. Explicit numbering appears only in the delivery steps, which are a real sequence.
@@ -49,4 +55,8 @@ pnpm og           # re-captures public/og.png from the live hero
 - **`basePath`.** Production serves from `/spreker`, local from the root. Next rewrites its own routes and assets; anything hand-written would not be covered. `metadataBase` resolves absolute paths against the origin only, so the base path is written into the OG image URL by hand in `layout.tsx`.
 - **Canvas cannot resolve CSS custom properties.** `ctx.font` needs a literal font stack, not `var(--font-plex-mono)`.
 - **A `torusGeometry` already lies in the baffle plane.** Rotating it renders the woofer surround as a bar across the driver.
+- **A canvas can be handed to a worker once, ever.** The splash makes its canvas in the effect rather than rendering one, because in development the effect runs twice and the second `transferControlToOffscreen` throws.
+- **The review scripts wait for `load`, not `networkidle`.** The worker's chunk request never settles on the dev server, so idle never arrives and every pass times out.
+- **Rings are emitted on `beatEdge()`, not on a level test.** The kick sends `beat` to 1, but the simulated envelope with the sound off only reaches about 0.4, so the old `beat > 0.72` meant nothing rippled at all until the sound was turned on.
+- **`--rail` is `0` below 768px.** The rail is a transport bar along the bottom there, so reserving its width on the left only took measure away from the type.
 - **Analyser smoothing flattens transients.** `smoothingTimeConstant` is 0.3, and the band levels run through an auto-gain that tracks a decaying maximum and a rising minimum - a four-on-the-floor loop keeps the bottom octaves lit almost continuously, so the raw average barely moves.

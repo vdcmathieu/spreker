@@ -62,6 +62,8 @@ Three coupled ideas, all the same idea:
 2. **The headline breathes on the `wdth` axis.**
    Bass amplitude drives the variable font's width. Cone excursion becomes letter excursion.
    The type is not a delivery vehicle for the copy; it is the thing moving.
+   It is set to the measure: the size comes from the widest the axis will ever open to, so the lines are the lines and the breath never costs a millimetre of layout.
+   A headline that re-wraps on the kick throws the whole page down and up again, sixty times a minute.
 
 3. **The room instrument.**
    A plan view of your space with the rig at one edge and pressure rings rippling outward,
@@ -69,10 +71,25 @@ Three coupled ideas, all the same idea:
    Set the space and the headcount; the rings, the SPL readout and the recommended rig all change.
    It is a real physical model that answers the customer's actual question, and it is the page's functional centre.
 
+### The opening
+
+The page opens on still water.
+A dot lattice fills the screen, one drop lands in the middle of it, and a circular wave goes out - sodium on the crest, violet in the trough, fading as it spreads.
+These are the room instrument's pressure rings arriving before the room, and they are the same physics: a wave leaving a source, losing amplitude with distance.
+
+It holds only until the page is ready and never longer than 2.8 seconds, it cannot be clicked through because it never takes a click, and anyone who has asked for reduced motion never sees it at all.
+The rig is not asked for until the wave is on its way out: evaluating three.js is a single task long enough to hold the wave still, and a loading animation that freezes is worse than no loading animation.
+
+The water does not stop at the splash.
+The hero stands on the same surface, turned right down, and every kick throws a ring out **from the cabinet** - so the first thing the page does after the loading wave is show you the same wave, leaving the speaker, crossing the room.
+It is the room instrument's claim made twice: pressure is a thing that leaves a box and arrives somewhere else.
+With the sound off the rings still come, on the simulated envelope, about one a second.
+
 ## Restraint
 
-The boldness is spent on the room instrument and the breathing headline.
+The boldness is spent on the room instrument, the breathing headline and the water they both sit on.
 Everything around them is quiet: flat panels, hairline rules, generous space, no gradients used as decoration, no scattered scroll effects.
+The hero's water is ground rather than subject - one lattice, a fifth of the splash's brightness, and it is the only place on the page besides the instrument where anything ripples.
 
 Floor, not negotiable: responsive to 360px, visible keyboard focus, `prefers-reduced-motion` honoured (no ripple, no breathing, a single static 3D frame), audio opt-in only, all controls reachable without the canvas.
 

@@ -42,6 +42,7 @@ Start the dev server first, then:
 
 ```bash
 pnpm shots        # every section at 1440 / 390 / 834, into .review/, plus an overflow report
+pnpm splash       # records the opening wave frame by frame, and reports the longest stall
 pnpm interact     # drives the controls and asserts the page responds
 pnpm breathe      # samples the headline's width axis per frame, sound off vs on
 pnpm og           # re-captures public/og.png from the live hero
@@ -59,6 +60,8 @@ pnpm og           # re-captures public/og.png from the live hero
 | The instrument | `src/components/RoomInstrument.tsx` | Canvas 2D plan view plus the controls, which carry the same information in words. |
 | The cabinet | `src/components/RigModel.tsx` | Procedural three.js - no model files, no image textures, no HDR. |
 | The rail | `src/components/Rail.tsx` | The patch panel, and the owner of the one rAF that keeps `levels` current. |
+| The opening | `src/components/Splash.tsx`, `src/lib/wave.ts` | A drop in still water while the page loads, drawn in a worker so hydration cannot freeze it. |
+| The hero's water | `src/components/WaterField.tsx` | The same surface, turned right down, with a ring leaving the cabinet on every kick. |
 
 **Nothing is fetched at run time.** The grille is a dot pattern drawn to a canvas, the environment is built from lightformers, the fonts are self-hosted by `next/font`, and the music is oscillators.
 

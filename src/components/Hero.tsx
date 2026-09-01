@@ -3,9 +3,11 @@
 import dynamic from 'next/dynamic';
 import { BreathingType } from './BreathingType';
 import { Glow } from './Glow';
+import { WaterField } from './WaterField';
 import { RIGS } from '@/lib/rigs';
 import { toggle } from '@/lib/audio';
-import { usePlaying } from '@/lib/hooks';
+import { usePlaying, useSplashDone } from '@/lib/hooks';
+import { useRef } from 'react';
 
 const RigStage = dynamic(() => import('./RigStage').then((m) => m.RigStage), {
   ssr: false,
@@ -13,15 +15,21 @@ const RigStage = dynamic(() => import('./RigStage').then((m) => m.RigStage), {
 
 export function Hero() {
   const playing = usePlaying();
+  // The hero's water leaves the cabinet, so it needs to know where it stands.
+  const rig = useRef<HTMLDivElement>(null);
+  // three.js is a long enough task to hold the opening wave still, so the rig
+  // is not asked for until the wave has gone.
+  const rigReady = useSplashDone();
 
   return (
     <section
       id="source"
       className="relative min-h-[100svh] overflow-hidden border-b border-hair"
     >
+      <WaterField source={rig} />
       <Glow className="-left-[20%] top-[8%] h-[70vh] w-[70vh] md:left-[38%] md:h-[95vh] md:w-[95vh]" />
 
-      <div className="relative mx-auto grid max-w-[100rem] gap-10 px-6 pb-28 pt-24 md:pb-20 lg:grid-cols-[1.02fr_0.98fr] lg:items-center lg:gap-6 lg:px-14 lg:pt-28"
+      <div className="relative mx-auto grid max-w-[100rem] gap-10 px-6 pb-28 pt-24 md:pb-20 lg:grid-cols-[1.3fr_0.7fr] lg:items-center lg:gap-6 lg:px-14 lg:pt-28"
         style={{ paddingLeft: 'max(1.5rem, var(--rail))' }}
       >
         <div className="relative z-10">
@@ -30,7 +38,7 @@ export function Hero() {
             Spreker — party speakers, Brussels &amp; Antwerp
           </p>
 
-          <BreathingType className="text-[clamp(2.9rem,7.6vw,6.6rem)]">
+          <BreathingType fit className="text-[clamp(2.9rem,7.6vw,6.6rem)]">
             <span className="block">As loud</span>
             <span className="block">as the room</span>
             <span className="block text-sodium">can take</span>
@@ -60,8 +68,10 @@ export function Hero() {
           </div>
         </div>
 
-        <div className="relative h-[42vh] min-h-[17rem] lg:h-[70vh]">
-          <RigStage rig={RIGS[1]} className="absolute inset-0" cameraZ={3.3} />
+        <div ref={rig} className="relative h-[42vh] min-h-[17rem] lg:h-[70vh]">
+          {rigReady && (
+            <RigStage rig={RIGS[1]} className="rig-arrive absolute inset-0" cameraZ={3.3} />
+          )}
         </div>
       </div>
 

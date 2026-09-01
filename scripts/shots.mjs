@@ -28,7 +28,7 @@ async function pass(label, width, height) {
   page.on('console', (m) => log.push(`[${label}] ${m.type()}: ${m.text()}`));
   page.on('pageerror', (e) => log.push(`[${label}] pageerror: ${e.message}`));
 
-  await page.goto(URL_, { waitUntil: 'networkidle' });
+  await page.goto(URL_, { waitUntil: 'load' });
   await page.waitForTimeout(2500); // let the canvases settle
 
   await page.screenshot({ path: `${OUT}/${label}-00-top.png` });

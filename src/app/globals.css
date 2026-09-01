@@ -29,10 +29,18 @@
   --ease-out-cabinet: cubic-bezier(0.16, 1, 0.3, 1);
 }
 
-/* The rail's width, referenced by every section's left padding. */
+/* The rail's width, referenced by every section's left padding. Below 768px
+   the rail is a transport bar along the bottom, so there is nothing on the left
+   to leave room for and the gutter goes back to the type. */
 :root {
-  --rail: 4.5rem;
+  --rail: 0rem;
   color-scheme: dark;
+}
+
+@media (min-width: 768px) {
+  :root {
+    --rail: 4.5rem;
+  }
 }
 
 @media (min-width: 1024px) {
@@ -96,6 +104,12 @@ body {
   line-height: 0.84;
   letter-spacing: -0.015em;
   text-wrap: balance;
+}
+
+/* Type set to the measure: the lines are the lines, and the size is chosen so
+   they hold at the widest the breath opens to. Nothing here may re-wrap. */
+.to-measure > * {
+  white-space: nowrap;
 }
 
 /* Panel labels: silkscreen on the back of a powered speaker. */
@@ -210,4 +224,64 @@ input[type="range"]::-moz-range-thumb {
   background: var(--color-sodium);
   border: none;
   border-radius: 1px;
+}
+
+/* ---------------------------------------------------------------------------
+   The splash. A drop lands in the middle of a still surface and the first
+   pressure wave goes out — the room instrument's rings, before the room.
+
+   The markup is server-rendered so it covers the first paint; the fallback
+   animation below takes it away on its own if the script never runs, and the
+   reduced-motion block above collapses that animation to nothing, so the wave
+   is never seen by anyone who has asked not to see it.
+   --------------------------------------------------------------------------- */
+
+.splash {
+  position: fixed;
+  inset: 0;
+  z-index: 60;
+  pointer-events: none;
+  background: var(--color-ink);
+  will-change: opacity;
+  animation: splash-fallback 3.2s var(--ease-out-cabinet) forwards;
+}
+
+@keyframes splash-fallback {
+  0%,
+  55% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+    visibility: hidden;
+  }
+}
+
+/* Handed the dismissal once the fonts are in and the page has loaded. */
+.splash.splash-out {
+  opacity: 0;
+  transition: opacity 900ms var(--ease-out-cabinet);
+}
+
+@keyframes splash-mark {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+/* The rig turns up a moment after the page does — see lib/splash.ts. */
+.rig-arrive {
+  animation: rig-arrive 900ms var(--ease-out-cabinet) both;
+}
+
+@keyframes rig-arrive {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
 }

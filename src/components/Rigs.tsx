@@ -4,7 +4,7 @@ import dynamic from 'next/dynamic';
 import { useState } from 'react';
 import { RIGS, type Rig } from '@/lib/rigs';
 import { directSpl } from '@/lib/spl';
-import { useReveal } from '@/lib/hooks';
+import { useReveal, useSplashDone } from '@/lib/hooks';
 
 const RigStage = dynamic(() => import('./RigStage').then((m) => m.RigStage), { ssr: false });
 
@@ -17,6 +17,8 @@ export function Rigs() {
   const [selected, setSelected] = useState<Rig['id']>('tuin');
   const rig = RIGS.find((r) => r.id === selected)!;
   const reveal = useReveal<HTMLDivElement>();
+  // Same chunk as the hero's rig, so it waits on the same thing.
+  const rigReady = useSplashDone();
 
   return (
     <section id="rig" className="border-b border-hair">
@@ -42,7 +44,13 @@ export function Rigs() {
 
         <div className="grid gap-px border border-hair bg-hair lg:grid-cols-[1fr_1fr]">
           <div className="relative min-h-[22rem] bg-stage lg:min-h-[36rem]">
-            <RigStage rig={rig} className="absolute inset-0" cameraZ={rig.subs > 0 ? 3.6 : 3.1} />
+            {rigReady && (
+              <RigStage
+                rig={rig}
+                className="rig-arrive absolute inset-0"
+                cameraZ={rig.subs > 0 ? 3.6 : 3.1}
+              />
+            )}
             <p className="absolute bottom-3 left-4 font-mono text-[0.6875rem] text-mute/80">
               {rig.name} · the cone is moving with the signal
             </p>

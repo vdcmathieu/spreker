@@ -2,7 +2,7 @@
 import { chromium } from 'playwright';
 const b = await chromium.launch({ args: ['--autoplay-policy=no-user-gesture-required', '--use-gl=swiftshader'] });
 const p = await (await b.newContext({ viewport: { width: 1440, height: 900 } })).newPage();
-await p.goto('http://localhost:3000', { waitUntil: 'networkidle' });
+await p.goto('http://localhost:3000', { waitUntil: 'load' });
 await p.waitForTimeout(1200);
 
 const sample = async (label) => {

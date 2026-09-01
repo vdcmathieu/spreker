@@ -6,7 +6,7 @@ const b = await chromium.launch({ args: ['--use-gl=swiftshader'] });
 // 1. Reduced motion: nothing should move.
 const rm = await b.newContext({ viewport: { width: 1440, height: 900 }, reducedMotion: 'reduce' });
 const p1 = await rm.newPage();
-await p1.goto('http://localhost:3000', { waitUntil: 'networkidle' });
+await p1.goto('http://localhost:3000', { waitUntil: 'load' });
 await p1.waitForTimeout(2000);
 const widths = [];
 for (let i = 0; i < 10; i++) {
@@ -20,7 +20,7 @@ await p1.screenshot({ path: '.review/a11y-reduced.png' });
 
 // 2. Keyboard: walk the first controls and confirm a visible focus ring.
 const p2 = await (await b.newContext({ viewport: { width: 1440, height: 900 } })).newPage();
-await p2.goto('http://localhost:3000', { waitUntil: 'networkidle' });
+await p2.goto('http://localhost:3000', { waitUntil: 'load' });
 for (let i = 0; i < 4; i++) {
   await p2.keyboard.press('Tab');
   const info = await p2.evaluate(() => {
@@ -33,7 +33,7 @@ for (let i = 0; i < 4; i++) {
 
 // 3. Every canvas hidden from the tree, and the readout present.
 const p3 = await (await b.newContext({ viewport: { width: 1440, height: 900 } })).newPage();
-await p3.goto('http://localhost:3000', { waitUntil: 'networkidle' });
+await p3.goto('http://localhost:3000', { waitUntil: 'load' });
 await p3.waitForTimeout(1500);
 console.log('canvases:', await p3.locator('canvas').count(), '| all aria-hidden:',
   await p3.evaluate(() => [...document.querySelectorAll('canvas')].every((c) => c.closest('[aria-hidden="true"]') !== null)));

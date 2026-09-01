@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import { Archivo, IBM_Plex_Mono } from "next/font/google";
 import "./globals.css";
+import { Splash } from "@/components/Splash";
 
 /**
  * One superfamily, separated by the width axis rather than by family. The
@@ -58,7 +59,10 @@ export const viewport: Viewport = {
 export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
     <html lang="en-GB" className={`${archivo.variable} ${plexMono.variable} h-full`}>
-      <body className="min-h-full">{children}</body>
+      <body className="min-h-full">
+        <Splash />
+        {children}
+      </body>
     </html>
   );
 }

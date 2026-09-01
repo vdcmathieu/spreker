@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState, useSyncExternalStore } from 'react';
 import { levels, onPlayingChange, startClock, type Levels } from './audio';
+import { splashDone, splashDoneServer, subscribeSplash } from './splash';
 
 /**
  * The shared analyser, handed out as a stable mutable object rather than as
@@ -95,4 +96,12 @@ export function useActiveSection(ids: string[]): string {
     return () => io.disconnect();
   }, [ids]);
   return active;
+}
+
+/**
+ * True once the opening wave has left the screen. The 3D hero waits on it, so
+ * that evaluating three.js cannot stall the wave — see `lib/splash.ts`.
+ */
+export function useSplashDone(): boolean {
+  return useSyncExternalStore(subscribeSplash, splashDone, splashDoneServer);
 }
