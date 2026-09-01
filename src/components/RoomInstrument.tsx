@@ -1,284 +1,51 @@
 'use client';
 
-import { useEffect, useMemo, useRef, useState } from 'react';
-import { beatEdge, levels } from '@/lib/audio';
+import dynamic from 'next/dynamic';
+import { useEffect, useState } from 'react';
+import { clearSeat, setSeat } from '@/lib/audio';
+import { crowdSpl, distance, frontSpl, heardAs, spots } from '@/lib/room';
 import { RIGS, rigById, type Rig } from '@/lib/rigs';
 import {
   SPACES,
   assess,
   capacity,
-  furthestCorner,
   operatingSpl,
   recommend,
   reverbLift,
   spaceById,
   type Space,
 } from '@/lib/spl';
-import { useReducedMotion, useReveal } from '@/lib/hooks';
+import { usePlaying, useInView, useReveal, useSplashDone } from '@/lib/hooks';
 
 /**
- * The room instrument.
+ * The room instrument — the page's functional centre.
  *
- * A plan view of the space with the rig standing at the middle of the near
- * wall. The field behind it is real: every pixel is coloured by the sound
- * pressure the model says arrives there — violet where it is quiet, sodium
- * where it is loud enough to dance in, red where it is more than the space can
- * take. The rings are the same field, emitted on the beat.
+ * Your space drawn as a space, lit by the rig. Light from a point source and
+ * sound from a point source fall off at the same rate, so the brightness on the
+ * lawn is not an illustration of the loudness; it is the loudness. Whoever is
+ * standing in enough of it is dancing, and whoever is not is standing still.
  *
- * Rings are slowed by about three orders of magnitude. Sound crosses a garden
- * in forty milliseconds; nobody can see that.
+ * And you can put yourself anywhere in it. With the sound on, the music really
+ * does get quieter and duller as you walk to the back, while the party's own
+ * noise stays exactly where it was — so the far corner is not a number to
+ * interpret, it is a thing you hear.
  */
 
-const RING_SPEED = 9; // metres per second, on screen
-const RING_LIFE = 2.6;
-
-type Ring = { born: number };
-
-/**
- * The pressure ramp.
- *
- * Sound pressure is sequential data, so it wants a perceptually uniform
- * sequential scale rather than a straight interpolation between two brand
- * colours — mixing violet into amber in RGB goes through pink, which reads as
- * decoration rather than as a quantity. Inferno happens to run from deep violet
- * to sodium amber, which is the palette anyway, so the page's colours and the
- * right scale for the data are the same thing.
- *
- * Trimmed at both ends: no black at the bottom, no white-yellow at the top.
- */
-const INFERNO: [number, number, number][] = [
-  [22, 11, 57],
-  [51, 10, 89],
-  [87, 16, 110],
-  [122, 27, 109],
-  [158, 41, 99],
-  [191, 57, 82],
-  [221, 81, 58],
-  [243, 120, 25],
-  [252, 165, 10],
-  [246, 200, 60],
-];
-
-function splColour(spl: number, target: number, ceiling: number): [number, number, number] {
-  // Over what the space takes is not a louder shade of the same thing; it is a
-  // different state, so it gets the one colour reserved for that.
-  if (spl >= ceiling) return [255, 59, 48];
-
-  const foot = target - 12;
-  const t = Math.max(0, Math.min(1, (spl - foot) / (ceiling - foot)));
-  const x = t * (INFERNO.length - 1);
-  const i = Math.min(INFERNO.length - 2, Math.floor(x));
-  const f = x - i;
-  const a = INFERNO[i];
-  const b = INFERNO[i + 1];
-  return [
-    Math.round(a[0] + (b[0] - a[0]) * f),
-    Math.round(a[1] + (b[1] - a[1]) * f),
-    Math.round(a[2] + (b[2] - a[2]) * f),
-  ];
-}
-
-const rgba = (c: [number, number, number], a: number) => `rgba(${c[0]},${c[1]},${c[2]},${a})`;
-
-/**
- * The crowd, laid out from a seed so the same room always draws the same party.
- * Denser towards the rig, because that is where people stand.
- */
-function scatterCrowd(heads: number, w: number, d: number) {
-  let seed = heads * 7919 + w * 131 + d * 17;
-  const rnd = () => {
-    seed = (seed * 1103515245 + 12345) % 2147483648;
-    return seed / 2147483648;
-  };
-  return Array.from({ length: Math.min(heads, 120) }, () => {
-    const bias = rnd() ** 0.68;
-    return { x: (rnd() - 0.5) * w * 0.9, y: 0.6 + bias * (d - 1.2) };
-  });
-}
-
-function Plan({ rig, space, heads }: { rig: Rig; space: Space; heads: number }) {
-  const canvas = useRef<HTMLCanvasElement>(null);
-  const rings = useRef<Ring[]>([]);
-  const state = useRef({ rig, space, heads });
-  const reduced = useReducedMotion();
-
-  // The draw loop reads the latest props without being torn down and rebuilt on
-  // every slider tick, so they are pushed into a ref after each render rather
-  // than during it.
-  useEffect(() => {
-    state.current = { rig, space, heads };
-  });
-
-  // The crowd, scattered once per (space, headcount) so it does not jitter
-  // every frame.
-  const crowd = useMemo(() => scatterCrowd(heads, space.w, space.d), [heads, space.w, space.d]);
-
-  useEffect(() => {
-    const cvs = canvas.current;
-    if (!cvs) return;
-    const ctx = cvs.getContext('2d')!;
-    let raf = 0;
-    const kicked = beatEdge();
-    const t0 = performance.now();
-
-    const resize = () => {
-      const dpr = Math.min(window.devicePixelRatio || 1, 2);
-      const r = cvs.getBoundingClientRect();
-      cvs.width = Math.round(r.width * dpr);
-      cvs.height = Math.round(r.height * dpr);
-      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-    };
-    resize();
-    const ro = new ResizeObserver(resize);
-    ro.observe(cvs);
-
-    const draw = () => {
-      raf = requestAnimationFrame(draw);
-      const { rig: r, space: sp, heads: n } = state.current;
-      const now = (performance.now() - t0) / 1000;
-      const verdict = assess(r, sp, n);
-      const W = cvs.clientWidth;
-      const H = cvs.clientHeight;
-      if (!W || !H) return;
-
-      // Fit the room, keeping its real proportions.
-      const padX = 26;
-      const padTop = 34;
-      const padBottom = 26;
-      const scale = Math.min((W - padX * 2) / sp.w, (H - padTop - padBottom) / sp.d);
-      const rw = sp.w * scale;
-      const rh = sp.d * scale;
-      const ox = (W - rw) / 2;
-      const oy = padTop + (H - padTop - padBottom - rh) / 2;
-      const sx = ox + rw / 2; // the rig, middle of the near wall
-      const sy = oy + rh;
-      const toPx = (m: number) => m * scale;
-
-      ctx.clearRect(0, 0, W, H);
-
-      // Site grid. The room is drawn to its real proportions, which leaves the
-      // panel lopsided; this is what the ground outside it looks like.
-      ctx.fillStyle = 'rgba(237,233,242,0.075)';
-      for (let gy = 8; gy < H; gy += 16) {
-        for (let gx = 8; gx < W; gx += 16) ctx.fillRect(gx, gy, 1, 1);
-      }
-
-      ctx.save();
-      ctx.beginPath();
-      ctx.rect(ox, oy, rw, rh);
-      ctx.clip();
-
-      // The static field.
-      const maxR = Math.hypot(rw, rh);
-      const grad = ctx.createRadialGradient(sx, sy, 0, sx, sy, maxR);
-      for (let i = 0; i <= 12; i++) {
-        const d = Math.max(1, (i / 12) * (maxR / scale));
-        const c = splColour(operatingSpl(r, sp, n, d), verdict.target, sp.takes);
-        // Alpha stays roughly level so hue alone carries the pressure; a decay
-        // here turned the whole field into one brown smear.
-        grad.addColorStop(i / 12, rgba(c, 0.62));
-      }
-      ctx.globalCompositeOperation = 'screen';
-      ctx.fillStyle = grad;
-      ctx.fillRect(ox, oy, rw, rh);
-      ctx.globalCompositeOperation = 'source-over';
-
-      // Rings, emitted on the beat. With sound off they still come, on the
-      // simulated envelope, so the instrument reads as live.
-      if (!reduced) {
-        if (kicked(now)) rings.current.push({ born: now });
-        rings.current = rings.current.filter((ring) => now - ring.born < RING_LIFE);
-        for (const ring of rings.current) {
-          const age = now - ring.born;
-          const metres = age * RING_SPEED;
-          const rad = toPx(metres);
-          if (rad < 1) continue;
-          const c = splColour(operatingSpl(r, sp, n, Math.max(1, metres)), verdict.target, sp.takes);
-          ctx.beginPath();
-          ctx.arc(sx, sy, rad, Math.PI, Math.PI * 2);
-          ctx.globalCompositeOperation = 'lighter';
-          ctx.strokeStyle = rgba(c, 0.5 * (1 - age / RING_LIFE));
-          ctx.lineWidth = 1.6;
-          ctx.stroke();
-          ctx.globalCompositeOperation = 'source-over';
-        }
-      }
-
-      // Distance arcs with their real levels. This is the honest part.
-      ctx.font = '10px "IBM Plex Mono", ui-monospace, monospace';
-      ctx.textAlign = 'left';
-      for (const m of [2, 4, 8, 16, 24]) {
-        if (m > furthestCorner(sp)) break;
-        const rad = toPx(m);
-        ctx.beginPath();
-        ctx.arc(sx, sy, rad, Math.PI, Math.PI * 2);
-        ctx.strokeStyle = 'rgba(237,233,242,0.13)';
-        ctx.lineWidth = 1;
-        ctx.setLineDash([2, 4]);
-        ctx.stroke();
-        ctx.setLineDash([]);
-        ctx.fillStyle = 'rgba(237,233,242,0.42)';
-        ctx.fillText(`${operatingSpl(r, sp, n, m).toFixed(0)} dB`, sx + 5, sy - rad - 5);
-      }
-
-      // The crowd.
-      for (const p of crowd) {
-        const px = sx + toPx(p.x);
-        const py = sy - toPx(p.y);
-        const d = Math.hypot(p.x, p.y);
-        const spl = operatingSpl(r, sp, n, Math.max(1, d));
-        const c = splColour(spl, verdict.target, sp.takes);
-        const dancing = spl >= verdict.target;
-        ctx.beginPath();
-        ctx.arc(px, py, dancing ? 2.4 : 1.7, 0, Math.PI * 2);
-        ctx.fillStyle = rgba(c, dancing ? 0.9 : 0.34);
-        ctx.fill();
-      }
-
-      ctx.restore();
-
-      // Walls. Solid indoors, dashed where there is nothing to reflect off.
-      ctx.strokeStyle = 'rgba(237,233,242,0.28)';
-      ctx.lineWidth = 1;
-      if (!sp.indoor) ctx.setLineDash([5, 5]);
-      ctx.strokeRect(ox + 0.5, oy + 0.5, rw - 1, rh - 1);
-      ctx.setLineDash([]);
-
-      // The rig itself, sitting on the near wall.
-      const bump = 1 + levels.bass * 0.5;
-      ctx.fillStyle = '#ff9e2c';
-      ctx.fillRect(sx - 11, sy - 4, 22, 5);
-      ctx.beginPath();
-      ctx.arc(sx, sy - 1.5, 4 * bump + 3, 0, Math.PI * 2);
-      ctx.fillStyle = `rgba(255,158,44,${0.18 + levels.bass * 0.3})`;
-      ctx.fill();
-
-      // Scale bar, so the plan is readable as a real size.
-      ctx.strokeStyle = 'rgba(237,233,242,0.34)';
-      ctx.beginPath();
-      ctx.moveTo(ox, oy - 10);
-      ctx.lineTo(ox + toPx(5), oy - 10);
-      ctx.stroke();
-      ctx.fillStyle = 'rgba(237,233,242,0.5)';
-      ctx.textAlign = 'left';
-      ctx.fillText('5 m', ox + toPx(5) + 6, oy - 6);
-    };
-
-    draw();
-    return () => {
-      cancelAnimationFrame(raf);
-      ro.disconnect();
-    };
-  }, [crowd, reduced]);
-
-  return <canvas ref={canvas} className="h-full w-full" aria-hidden="true" />;
-}
+// three.js is a long enough task to hold the opening wave still, so the room's
+// canvas is not asked for until the wave has gone — the same gate the hero uses.
+const RoomStage = dynamic(() => import('./RoomStage').then((m) => m.RoomStage), {
+  ssr: false,
+});
 
 export function RoomInstrument() {
   const [spaceId, setSpaceId] = useState<Space['id']>('garden');
   const [heads, setHeads] = useState(70);
   const [manual, setManual] = useState<Rig['id'] | null>(null);
+  const [listener, setListener] = useState({ x: 0, y: 8 });
   const reveal = useReveal<HTMLDivElement>();
+  const [stage, inView] = useInView<HTMLDivElement>('-15% 0px -15% 0px');
+  const ready = useSplashDone();
+  const playing = usePlaying();
 
   const space = spaceById(spaceId);
   const cap = Math.min(400, capacity(space));
@@ -287,6 +54,34 @@ export function RoomInstrument() {
   const rig = manual ? rigById(manual) : suggested;
   const verdict = assess(rig, space, people);
   const lift = reverbLift(rig, space);
+  const here = spots(space);
+
+  // Stand in the middle of whichever room you have just chosen.
+  const chooseSpace = (id: Space['id']) => {
+    setSpaceId(id);
+    setManual(null);
+    setListener({ x: 0, y: spaceById(id).d / 2 });
+  };
+
+  const away = distance(listener.x, listener.y);
+  const music = operatingSpl(rig, space, people, away);
+  const crowd = crowdSpl(people);
+  const front = frontSpl(rig, space, people);
+  const heard = heardAs(music, crowd);
+
+  /**
+   * Standing in the room is something you do while you are looking at it. Step
+   * away and the page sounds like the page again, rather than leaving a crowd
+   * murmuring under the hero.
+   */
+  useEffect(() => {
+    if (playing && inView) setSeat(music, crowd, front);
+    else clearSeat();
+  }, [playing, inView, music, crowd, front]);
+
+  // Clearing in the effect above would glide back to the front of house and
+  // away again on every change, so leaving is handled once, here.
+  useEffect(() => () => clearSeat(), []);
 
   const statusColour =
     verdict.status === 'good' ? 'text-sodium' : verdict.status === 'over' ? 'text-clip' : 'text-uv';
@@ -304,25 +99,34 @@ export function RoomInstrument() {
             Room
           </p>
           <h2 className="display text-[clamp(1.85rem,4.1vw,3.15rem)]" style={{ ['--wdth' as string]: 108 }}>
-            Start with the space, not the speaker
+            Stand at the back of your own party
           </h2>
           <p className="mt-5 max-w-[52ch] leading-relaxed text-mute">
             Loudness is geometry. Sound drops six decibels every time the distance
             doubles, and a crowd makes about sixty decibels of its own noise before
-            anyone plays a note. Set your room below and watch what actually reaches
-            the back of it.
+            anyone plays a note. So the rig lights the room below at exactly the rate
+            it fills it, and you can go and stand in it.
           </p>
         </header>
 
         <div className="grid gap-px overflow-hidden border border-hair bg-hair lg:grid-cols-[minmax(0,1fr)_22rem]">
-          {/* The plan. */}
-          <div className="flex min-h-[24rem] flex-col bg-stage lg:min-h-[34rem]">
-            <div className="min-h-0 flex-1">
-              <Plan rig={rig} space={space} heads={people} />
+          <div ref={stage} className="flex min-h-[26rem] flex-col bg-stage md:min-h-[36rem] lg:min-h-[38rem]">
+            <div className="relative min-h-0 flex-1">
+              {ready && (
+                <RoomStage
+                  rig={rig}
+                  space={space}
+                  heads={people}
+                  listener={listener}
+                  onMove={setListener}
+                  className="absolute inset-0 cursor-grab active:cursor-grabbing"
+                />
+              )}
             </div>
             <p className="border-t border-hair px-4 py-3 font-mono text-[0.6875rem] leading-relaxed text-mute/80">
-              Operating level, not the peak on the box · rings slowed about a
-              thousandfold · {space.note}
+              The rig lights the room, and light falls off at exactly the rate sound
+              does · whoever is in the light can hear it, whoever is not is standing
+              still · drag yourself anywhere to stand there · {space.note}
             </p>
           </div>
 
@@ -335,10 +139,7 @@ export function RoomInstrument() {
                   <button
                     key={s.id}
                     type="button"
-                    onClick={() => {
-                      setSpaceId(s.id);
-                      setManual(null);
-                    }}
+                    onClick={() => chooseSpace(s.id)}
                     aria-pressed={s.id === spaceId}
                     className={`px-3 py-3 text-left font-mono text-xs transition-colors ${
                       s.id === spaceId
@@ -376,9 +177,9 @@ export function RoomInstrument() {
                 }}
               />
               <p className="font-mono text-[0.6875rem] text-mute">
-                They make {(60 + 10 * Math.log10(people)).toFixed(0)} dB of noise by
-                themselves. You need {verdict.target.toFixed(0)} dB to be heard over
-                it. This space holds about {cap}.
+                They make {crowd.toFixed(0)} dB of noise by themselves. You need{' '}
+                {verdict.target.toFixed(0)} dB to be heard over it. This space holds
+                about {cap}.
               </p>
             </div>
 
@@ -434,7 +235,42 @@ export function RoomInstrument() {
               </div>
             </fieldset>
 
-            {/* The readout. Everything the canvas shows, in words. */}
+            {/* Standing somewhere, which the canvas also lets you do by dragging.
+                These are that control's text equivalent and its shortcuts. */}
+            <fieldset>
+              <legend className="label mb-3">Where you&apos;re standing</legend>
+              <div className="grid grid-cols-3 gap-px bg-hair">
+                {here.map((s) => {
+                  const on = Math.hypot(s.x - listener.x, s.y - listener.y) < 0.5;
+                  return (
+                    <button
+                      key={s.id}
+                      type="button"
+                      onClick={() => setListener({ x: s.x, y: s.y })}
+                      aria-pressed={on}
+                      className={`px-2 py-3 text-left font-mono text-[0.6875rem] leading-tight transition-colors ${
+                        on ? 'bg-panel text-bone' : 'bg-stage text-mute hover:text-bone'
+                      }`}
+                    >
+                      {s.name}
+                    </button>
+                  );
+                })}
+              </div>
+              <p
+                role="status"
+                className={`mt-3 text-sm leading-relaxed ${heard.can ? 'text-bone' : 'text-uv'}`}
+              >
+                {away.toFixed(0)} m out, {music.toFixed(0)} dB. {heard.line}
+              </p>
+              <p className="mt-2 font-mono text-[0.6875rem] leading-relaxed text-mute">
+                {playing
+                  ? 'That is what you are hearing: the music falls away as you walk back, and the party does not.'
+                  : 'Turn the sound on and walk to the back — the music falls away, and the party does not.'}
+              </p>
+            </fieldset>
+
+            {/* The verdict on the rig itself. */}
             <div role="status" className="mt-auto border-t border-hair pt-5">
               <dl className="mb-4 grid grid-cols-3 gap-3 font-mono text-xs">
                 {[

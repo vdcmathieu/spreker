@@ -37,5 +37,9 @@ await p3.goto('http://localhost:3000', { waitUntil: 'load' });
 await p3.waitForTimeout(1500);
 console.log('canvases:', await p3.locator('canvas').count(), '| all aria-hidden:',
   await p3.evaluate(() => [...document.querySelectorAll('canvas')].every((c) => c.closest('[aria-hidden="true"]') !== null)));
-console.log('room readout:', (await p3.locator('#room [role="status"]').innerText()).replace(/\n+/g, ' | ').slice(0, 120));
+// The room has two text equivalents now — where you are standing, and the
+// verdict on the rig — and both have to be readable without the canvas.
+for (const el of await p3.locator('#room [role="status"]').all()) {
+  console.log('room readout:', (await el.innerText()).replace(/\n+/g, ' | ').slice(0, 130));
+}
 await b.close();

@@ -34,6 +34,9 @@ let ctx: AudioContext | null = null;
 let analyser: AnalyserNode | null = null;
 let master: GainNode | null = null;
 let bins: Uint8Array<ArrayBuffer> | null = null;
+let seatGain: GainNode | null = null;
+let seatTone: BiquadFilterNode | null = null;
+let babbleGain: GainNode | null = null;
 let schedulerId: number | null = null;
 let rafId: number | null = null;
 let step = 0;
@@ -139,6 +142,47 @@ function stab(c: AudioContext, out: AudioNode, t: number, root: number) {
     osc.stop(t + 0.36);
   }
   lp.connect(g).connect(out);
+}
+
+/**
+ * The party's own noise.
+ *
+ * Filtered noise with a slow wobble on it — the murmur of a few hundred people,
+ * which is the thing the music has to be heard over. It is deliberately *not*
+ * routed through the analyser: the page's type breathes to the music, and a
+ * crowd is not the music.
+ *
+ * This is the whole point of the room section made audible. The crowd is the
+ * same loudness wherever you stand, and the music is not, so walking to the
+ * back does not simply turn the music down — it lets the room swallow it.
+ */
+function startBabble(c: AudioContext) {
+  const src = c.createBufferSource();
+  src.buffer = noise2s!;
+  src.loop = true;
+  src.playbackRate.value = 0.6;
+
+  const bp = c.createBiquadFilter();
+  bp.type = 'bandpass';
+  bp.frequency.value = 620;
+  bp.Q.value = 0.7;
+  const lp = c.createBiquadFilter();
+  lp.type = 'lowpass';
+  lp.frequency.value = 2200;
+
+  babbleGain = c.createGain();
+  babbleGain.gain.value = 0;
+
+  // A slow swell, so it reads as people rather than as hiss.
+  const wobble = c.createOscillator();
+  const wobbleDepth = c.createGain();
+  wobble.frequency.value = 0.21;
+  wobbleDepth.gain.value = 0.34;
+  wobble.connect(wobbleDepth).connect(bp.frequency);
+  wobble.start();
+
+  src.connect(bp).connect(lp).connect(babbleGain).connect(c.destination);
+  src.start();
 }
 
 // --- the loop -------------------------------------------------------------
@@ -301,9 +345,19 @@ export async function turnOn() {
     analyser.fftSize = 2048;
     analyser.smoothingTimeConstant = 0.3;
     bins = new Uint8Array(analyser.frequencyBinCount) as Uint8Array<ArrayBuffer>;
+    // The analyser sits *before* the listener's position, so walking to the
+    // back of the garden makes the music quieter without stopping the page.
+    seatGain = ctx.createGain();
+    seatTone = ctx.createBiquadFilter();
+    seatTone.type = 'lowpass';
+    seatTone.frequency.value = 20000;
+    seatTone.Q.value = 0.4;
     master.connect(hp);
     hp.connect(analyser);
-    analyser.connect(ctx.destination);
+    analyser.connect(seatGain);
+    seatGain.connect(seatTone);
+    seatTone.connect(ctx.destination);
+    startBabble(ctx);
     step = 0;
   }
   await ctx.resume();
@@ -321,6 +375,7 @@ export function turnOff() {
   master.gain.cancelScheduledValues(ctx.currentTime);
   master.gain.setValueAtTime(master.gain.value, ctx.currentTime);
   master.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + 0.35);
+  if (babbleGain) babbleGain.gain.setTargetAtTime(0, ctx.currentTime, 0.12);
   if (schedulerId !== null) window.clearInterval(schedulerId);
   schedulerId = null;
   levels.playing = false;
@@ -329,4 +384,41 @@ export function turnOff() {
 
 export function toggle() {
   return levels.playing ? (turnOff(), Promise.resolve()) : turnOn();
+}
+
+
+// --- where you are standing -----------------------------------------------
+
+/**
+ * Put the listener somewhere in the room.
+ *
+ * `music` is the level arriving where they stand and `front` is the level at
+ * the front of house, both in dB; the music is played back at the difference
+ * between them, so standing by the box is the level the page has always played
+ * at and walking away is honestly quieter. `crowd` is what the party makes by
+ * itself, which does not change with distance — so the ratio between the two
+ * is the thing that moves, and that ratio is the section's whole answer.
+ *
+ * The top end is rolled off with distance as well. Not for atmosphere: by the
+ * time you are at the far fence you are well off the horn's axis, and the top
+ * is the first thing to go.
+ */
+export function setSeat(music: number, crowd: number, front: number) {
+  if (!ctx || !seatGain || !seatTone || !babbleGain) return;
+  const t = ctx.currentTime;
+  const db = (x: number) => 10 ** (x / 20);
+  seatGain.gain.setTargetAtTime(db(music - front), t, 0.08);
+  babbleGain.gain.setTargetAtTime(db(crowd - front) * 0.9, t, 0.08);
+  // 18 kHz on axis at the box, down to about 4 kHz at the back of a big room.
+  const off = Math.max(0, front - music);
+  seatTone.frequency.setTargetAtTime(Math.max(2500, 18000 * 0.942 ** off), t, 0.08);
+}
+
+/** Step out of the room: the page sounds like the page again. */
+export function clearSeat() {
+  if (!ctx || !seatGain || !seatTone || !babbleGain) return;
+  const t = ctx.currentTime;
+  seatGain.gain.setTargetAtTime(1, t, 0.12);
+  babbleGain.gain.setTargetAtTime(0, t, 0.12);
+  seatTone.frequency.setTargetAtTime(20000, t, 0.12);
 }

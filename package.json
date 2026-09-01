@@ -9,6 +9,7 @@
     "lint": "eslint",
     "shots": "node scripts/shots.mjs",
     "splash": "node scripts/splash.mjs",
+    "room": "node scripts/room.mjs",
     "interact": "node scripts/interact.mjs",
     "breathe": "node scripts/breathe.mjs",
     "og": "node scripts/og.mjs"
@@ -34,5 +35,5 @@
     "typescript": "^5"
   },
   "packageManager": "pnpm@11.13.0",
-  "description": "Party speakers rented by the room \u2014 a design experiment in audio-reactive web design"
+  "description": "Party speakers rented by the room — a design experiment in audio-reactive web design"
 }

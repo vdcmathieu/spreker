@@ -21,7 +21,7 @@ Three coupled ideas carry the design - see [DESIGN.md](DESIGN.md) for the full d
 
 1. **One real audio analyser drives the page.** Silent on load; one button and a four-on-the-floor loop, synthesised live in WebAudio from oscillators and filtered noise, starts feeding an FFT that everything else reads.
 2. **The headline breathes on the `wdth` axis.** Archivo is a variable font, and the kick drives its width. Cone excursion, rendered as type.
-3. **The room instrument.** A plan view with pressure rings attenuating by the inverse-square law, coloured by a perceptual sequential scale that happens to run violet to sodium amber - the palette and the right scale for the data being the same thing.
+3. **The room instrument.** Your space drawn as a space and lit by the rig - and light from a point source falls off at exactly the rate sound does, so the brightness on the lawn *is* the loudness. Whoever stands in enough of it is dancing; whoever does not is standing still, and you can count them. Then drag yourself to the far fence: with the sound on the music really does go quiet and dull, while the party's own noise does not.
 
 ---
 
@@ -42,6 +42,7 @@ Start the dev server first, then:
 
 ```bash
 pnpm shots        # every section at 1440 / 390 / 834, into .review/, plus an overflow report
+pnpm room         # the room in every space, rig, headcount and standing position that differs
 pnpm splash       # records the opening wave frame by frame, and reports the longest stall
 pnpm interact     # drives the controls and asserts the page responds
 pnpm breathe      # samples the headline's width axis per frame, sound off vs on
@@ -57,7 +58,8 @@ pnpm og           # re-captures public/og.png from the live hero
 | Sound | `src/lib/audio.ts` | The synthesised loop, the analyser, and the single `levels` object everything reads. No audio files. |
 | Physics | `src/lib/spl.ts` | Inverse-square direct field, a reverberant term, crowd noise, and the verdict. |
 | Rigs | `src/lib/rigs.ts` | Three rigs, named for the room they fill. |
-| The instrument | `src/components/RoomInstrument.tsx` | Canvas 2D plan view plus the controls, which carry the same information in words. |
+| The instrument | `src/components/RoomInstrument.tsx` | The section: the caption, the controls and the readouts, which carry the same information in words. |
+| The room | `src/components/RoomScene.tsx`, `roomScene.glsl.ts` | The space itself. The falloff is solved per pixel in the shader and mirrored in `lib/room.ts`, so the people and the ground they stand on agree. |
 | The cabinet | `src/components/RigModel.tsx` | Procedural three.js - no model files, no image textures, no HDR. |
 | The rail | `src/components/Rail.tsx` | The patch panel, and the owner of the one rAF that keeps `levels` current. |
 | The opening | `src/components/Splash.tsx`, `src/lib/wave.ts` | A drop in still water while the page loads, drawn in a worker so hydration cannot freeze it. |
@@ -69,6 +71,7 @@ pnpm og           # re-captures public/og.png from the live hero
 
 Everything the page judges, it judges on the **direct** field: sound drops 6 dB per doubling of distance, a crowd of *n* makes about `60 + 10·log10(n)` dB of its own noise, and music needs roughly 8 dB over that.
 A rig is turned down until the far corner is exactly loud enough, and every level shown is that trimmed operating level rather than the peak printed on the box.
+That is also why a bigger rig barely changes the light and mostly changes how hard it is working: trimmed systems deliver the same coverage, and what the money buys is headroom.
 
 Indoors the room adds a reverberant field, shown separately and never counted towards the verdict - reverberant energy is smeared in time, so it adds loudness without adding intelligibility.
 Skipping that distinction lets a pair of 8" tops "fill" a warehouse, which is how the first version of the model got it wrong.

@@ -98,6 +98,22 @@ export function useActiveSection(ids: string[]): string {
   return active;
 }
 
+/** Whether an element is on screen, for anything that should only run there. */
+export function useInView<T extends HTMLElement>(margin = '0px') {
+  const ref = useRef<T>(null);
+  const [inView, setInView] = useState(false);
+  useEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    const io = new IntersectionObserver(([e]) => setInView(e.isIntersecting), {
+      rootMargin: margin,
+    });
+    io.observe(el);
+    return () => io.disconnect();
+  }, [margin]);
+  return [ref, inView] as const;
+}
+
 /**
  * True once the opening wave has left the screen. The 3D hero waits on it, so
  * that evaluating three.js cannot stall the wave — see `lib/splash.ts`.

@@ -30,7 +30,8 @@ The reference is not a nightclub interior; it is **a street at 1am** - sodium la
 
 Amber against violet on near-black instead of the expected acid lime on black.
 It is the palette of the night the product is actually for, and colour is load-bearing:
-in the room instrument **hue encodes sound pressure** (violet = quiet, sodium = loud, clip red = too loud).
+in the room the rig is a sodium lamp and **brightness is sound pressure** at the real rate, with clip red where it would be more than the space takes.
+The one saturated sodium object in that room is you, because you are also the control.
 It is never applied as decoration.
 
 ### Type
@@ -66,10 +67,28 @@ Three coupled ideas, all the same idea:
    A headline that re-wraps on the kick throws the whole page down and up again, sixty times a minute.
 
 3. **The room instrument.**
-   A plan view of your space with the rig at one edge and pressure rings rippling outward,
-   attenuating by the real inverse-square law (−6 dB per doubling of distance) and stopping at the walls.
-   Set the space and the headcount; the rings, the SPL readout and the recommended rig all change.
-   It is a real physical model that answers the customer's actual question, and it is the page's functional centre.
+   Your space drawn as a space, and lit by the rig.
+   The fence is where your fence is, the people are people, and the light falls off at **exactly** the rate the sound does - a point source of light and a point source of sound spread their energy over the same expanding sphere, so both lose six decibels every time the distance doubles.
+   The brightness on the lawn is not standing in for the loudness. It is the loudness.
+   Whoever is standing in enough of that light is dancing; whoever is not is standing still, and you can count them.
+
+   Two versions came before this one and both failed the same way.
+   A plan view coloured by a continuous gradient hid the answer inside a hue the eye cannot measure.
+   A landscape with the pressure as its height read the answer clearly and asked the viewer to accept that *up* meant decibels rather than ceiling height - a leap a chart-reader makes and a person hiring a speaker for a birthday should not have to.
+   Both needed their key read before any of them meant anything, which is the tell: a picture that needs a legend is not doing the work.
+   This one has no key.
+
+   The curve is honest everywhere except across a few decibels either side of the level the party needs, where the light comes up sharply.
+   That is deliberate and it is the one thing here that is drawn rather than measured: a pure falloff is a smooth gradient, and a smooth gradient cannot be read as a threshold.
+   The edge of the light is the edge of the party, and in a room the rig cannot fill you can see exactly where it stops and how many people are standing beyond it in the dark.
+
+   **And you can pick yourself up and put yourself anywhere in it.**
+   Drag yourself to the far fence and, with the sound on, the music really does get quieter and duller - the level from the same model, the top end going first because by then you are well off the horn's axis.
+   Meanwhile the party's own noise does not get quieter, because a crowd is the same loudness wherever you stand.
+   So walking to the back does not turn the music down; it lets the room swallow it.
+   That is the section's answer, and it is the one form of it nobody has to interpret: you hear it.
+
+   It is a real physical model answering the customer's actual question, and it is the page's functional centre.
 
 ### The opening
 
@@ -82,16 +101,18 @@ The rig is not asked for until the wave is on its way out: evaluating three.js i
 
 The water does not stop at the splash.
 The hero stands on the same surface, turned right down, and every kick throws a ring out **from the cabinet** - so the first thing the page does after the loading wave is show you the same wave, leaving the speaker, crossing the room.
-It is the room instrument's claim made twice: pressure is a thing that leaves a box and arrives somewhere else.
+It is the room instrument's claim made twice: pressure is a thing that leaves a box and arrives somewhere else - and in the room, the thing that arrives is light.
 With the sound off the rings still come, on the simulated envelope, about one a second.
 
 ## Restraint
 
 The boldness is spent on the room instrument, the breathing headline and the water they both sit on.
 Everything around them is quiet: flat panels, hairline rules, generous space, no gradients used as decoration, no scattered scroll effects.
+Nothing in the room is there to look like something.
+The light is the level, the people are the people, the fence is the fence - and the panel beside it says the same thing in words, so the room is readable rather than merely atmospheric.
 The hero's water is ground rather than subject - one lattice, a fifth of the splash's brightness, and it is the only place on the page besides the instrument where anything ripples.
 
-Floor, not negotiable: responsive to 360px, visible keyboard focus, `prefers-reduced-motion` honoured (no ripple, no breathing, a single static 3D frame), audio opt-in only, all controls reachable without the canvas.
+Floor, not negotiable: responsive to 360px, visible keyboard focus, `prefers-reduced-motion` honoured (no ripple, no breathing, nobody dancing, a single static frame that is still fully readable), audio opt-in only, all controls reachable without the canvas - including where you are standing, which has three named spots in the panel as well as the drag.
 
 ## Copy
 
