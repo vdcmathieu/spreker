@@ -81,48 +81,20 @@ Skipping that distinction lets a pair of 8" tops "fill" a warehouse, which is ho
 
 ## Deployment
 
-Not deployed yet.
-It goes out as its own Vercel project, proxied under the lab host by the routing middleware in the `vandecatsije.com` repo, exactly like `yomu` and `mouvementdargent`.
+Live at **[lab.vandecatsije.com/spreker](https://lab.vandecatsije.com/spreker)**.
 
-**1. Deploy this repo.**
+It is its own Vercel project, `spreker`, serving from `https://spreker.vercel.app` with `basePath` `/spreker`, and the lab host proxies it - exactly like `yomu` and `mouvementdargent`.
+The proxy is the branch on `/spreker` in `middleware.ts` in the `vandecatsije.com` repo, and the lab card is `src/content/lab/spreker.md` there.
+
+To ship a change:
 
 ```bash
-vercel link            # new project, name it "spreker"
-vercel env add NEXT_PUBLIC_BASE_PATH production   # /spreker
 vercel --prod
 ```
 
-`NEXT_PUBLIC_SITE_URL` can be left unset; it defaults to `https://lab.vandecatsije.com`.
-Note the production origin Vercel gives back - the middleware needs it.
-
-**2. Add the proxy branch** in `~/Code/vandecatsije.com/middleware.ts`, beside the existing `yomu` and `mouvementdargent` branches:
-
-```ts
-const SPREKER_ORIGIN = 'https://<the origin from step 1>';
-
-if (url.pathname === '/spreker' || url.pathname.startsWith('/spreker/')) {
-  return rewrite(new URL(url.pathname + url.search, SPREKER_ORIGIN));
-}
-```
-
-**3. Add the lab entry** at `~/Code/vandecatsije.com/src/content/lab/spreker.md`:
-
-```yaml
-title: 'Spreker'
-summary: '...'
-tagline: 'As loud as the room can take'
-status: 'experiment'
-started: 2026-08-31
-url: 'https://lab.vandecatsije.com/spreker'
-urlLabel: 'Turn it on'
-repo: 'https://github.com/vdcmathieu/spreker'
-stack: ['Next.js', 'three.js', 'Web Audio', 'Vercel']
-featured: true
-```
-
-A cover image sits next to the .md file; `public/og.png` here is a reasonable starting point.
-
----
+The project is not connected to the GitHub repo, so a push does not deploy on its own; the CLI does.
+`NEXT_PUBLIC_BASE_PATH` is set to `/spreker` on production only, which is why `pnpm dev` still serves from the root.
+`NEXT_PUBLIC_SITE_URL` is unset and defaults to `https://lab.vandecatsije.com`.
 
 ## Licence
 
